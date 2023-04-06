@@ -117,21 +117,12 @@
 							},
 						],
 						pager: "#tablePager",
+						pgbuttons: false,
+						pginput: false,
 						cellEdit: true,
 						cellsubmit: "clientArray",
 						editableColumns: ["payment_amount"],
 						selectedRowIds: [],
-						onSortCol: function () {
-							$(this)
-								.getGridParam("selectedRowIds")
-								.forEach((selectedRowId) => {
-									setTimeout(() => {
-										$(this)
-											.find(`tr input[value=${selectedRowId}]`)
-											.prop("checked", true);
-									}, 100);
-								});
-						},
 						afterRestoreCell: function (rowId, value, indexRow, indexColumn) {
 							let originalGridData = $("#table")
 								.jqGrid("getGridParam", "originalData")
@@ -153,8 +144,37 @@
 								.find(`tr input[value=${rowData.id}]`)
 								.is(":checked");
 						},
+						loadComplete: function () {
+							setTimeout(() => {
+								$(this)
+									.getGridParam("selectedRowIds")
+									.forEach((selectedRowId) => {
+										$(this)
+											.find(`tr input[value=${selectedRowId}]`)
+											.prop("checked", true);
+									});
+							}, 100);
+						},
 					})
-					.jqGrid("navGrid", "#tablePager")
+					.jqGrid("navGrid", "#tablePager", {
+						add: false,
+						edit: false,
+						del: false,
+						refresh: false,
+						search: false,
+					})
+					.jqGrid("navButtonAdd", '#tablePager', {
+						caption: "getGridData",
+						title: "getGridData",
+						id: "getGridData",
+						buttonicon: "ui-icon-disk",
+						onClickButton: function () {
+							console.log($(this).getGridParam('data'));
+						},
+					})
+					.jqGrid("filterToolbar", {
+						searchOnEnter: false
+					})
 					.jqGrid("excelLikeGrid");
 			}
 
@@ -174,7 +194,6 @@
 				let isChecked = $(element).is(":checked");
 				let editableColumns = $("#table").getGridParam("editableColumns");
 				let selectedRowIds = $("#table").getGridParam("selectedRowIds");
-				selectedRowIds.push(rowId);
 
 				$("#table").jqGrid("setGridParam", {
 					selectedRowIds: selectedRowIds,
@@ -204,6 +223,12 @@
 
 				editableColumns.forEach((editableColumn) => {
 					if (!isChecked) {
+						let selectedRowIdIndex = selectedRowIds.indexOf(rowId);
+
+						if (selectedRowIdIndex !== -1) {
+							selectedRowIds.splice(selectedRowIdIndex, 1);
+						}
+
 						$("#table").jqGrid(
 							"setCell",
 							rowId,
@@ -217,6 +242,8 @@
 							"payment_amount",
 							originalGridData.payment_amount
 						);
+					} else {
+						selectedRowIds.push(rowId);
 					}
 				});
 			}
