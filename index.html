@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+		<link
+			rel="stylesheet"
+			type="text/css"
+			media="screen"
+			href="libraries/jqgrid/580/css/jquery-ui.css"
+		/>
+		<link
+			rel="stylesheet"
+			type="text/css"
+			media="screen"
+			href="libraries/jqgrid/580/css/trirand/ui.jqgrid.css"
+		/>
+	</head>
+	<body>
+		<table id="table"></table>
+		<div id="tablePager"></div>
+
+		<script
+			src="libraries/jqgrid/580/js/jquery.min.js"
+			type="text/javascript"
+		></script>
+		<script
+			src="libraries/jqgrid/580/js/trirand/i18n/grid.locale-en.js"
+			type="text/javascript"
+		></script>
+		<script
+			src="libraries/jqgrid/580/js/trirand/jquery.jqGrid.min.js"
+			type="text/javascript"
+		></script>
+		<script>
+			$(document).ready(function () {
+				loadGrid();
+
+				getData().then((response) => {
+					$("#table")
+						.jqGrid("setGridParam", {
+							datatype: "local",
+							data: response,
+							originalData: response,
+						})
+						.trigger("reloadGrid");
+				});
+			});
+
+			function loadGrid() {
+				$("#table")
+					.jqGrid({
+						colModel: [
+							{
+								label: "check",
+								index: "check",
+								name: "check",
+								formatter: "checkbox",
+								formatter: function (value, rowOptions, rowData) {
+									return `<input type="checkbox" value="${rowData.id}" onChange="checkboxHandler(this, ${rowData.id})">`;
+								},
+							},
+							{
+								label: "id",
+								index: "id",
+								name: "id",
+								sortable: true,
+							},
+							{
+								label: "name",
+								index: "name",
+								name: "name",
+								sortable: true,
+							},
+							{
+								label: "debt_amount",
+								index: "debt_amount",
+								name: "debt_amount",
+								align: "right",
+							},
+							{
+								label: "payment_amount",
+								index: "payment_amount",
+								name: "payment_amount",
+								align: "right",
+								editable: true,
+								editoptions: {
+									dataEvents: [
+										{
+											type: "keyup",
+											fn: function (event, rowObject) {
+												let originalGridData = $("#table")
+													.jqGrid("getGridParam", "originalData")
+													.find((row) => row.id == rowObject.rowId);
+
+												let localRow = $("#table").jqGrid(
+													"getLocalRow",
+													rowObject.rowId
+												);
+
+												localRow.payment_amount = event.target.value;
+
+												$("#table").jqGrid(
+													"setCell",
+													rowObject.rowId,
+													"debt_amount",
+													originalGridData.debt_amount - localRow.payment_amount
+												);
+											},
+										},
+									],
+								},
+								sortable: true,
+								sorttype: "int",
+							},
+						],
+						pager: "#tablePager",
+						cellEdit: true,
+						cellsubmit: "clientArray",
+						editableColumns: ["payment_amount"],
+						selectedRowIds: [],
+						onSortCol: function () {
+							$(this)
+								.getGridParam("selectedRowIds")
+								.forEach((selectedRowId) => {
+									setTimeout(() => {
+										$(this)
+											.find(`tr input[value=${selectedRowId}]`)
+											.prop("checked", true);
+									}, 100);
+								});
+						},
+						afterRestoreCell: function (rowId, value, indexRow, indexColumn) {
+							let originalGridData = $("#table")
+								.jqGrid("getGridParam", "originalData")
+								.find((row) => row.id == rowId);
+
+							let localRow = $("#table").jqGrid("getLocalRow", rowId);
+
+							$("#table").jqGrid(
+								"setCell",
+								rowId,
+								"debt_amount",
+								originalGridData.debt_amount - localRow.payment_amount
+							);
+						},
+						isCellEditable: function (cellname, iRow, iCol) {
+							let rowData = $(this).jqGrid("getRowData")[iRow - 1];
+
+							return $(this)
+								.find(`tr input[value=${rowData.id}]`)
+								.is(":checked");
+						},
+					})
+					.jqGrid("navGrid", "#tablePager")
+					.jqGrid("excelLikeGrid");
+			}
+
+			function getData() {
+				return new Promise((resolve, reject) => {
+					$.ajax({
+						url: "http://localhost/jqgrid-form/api/debts.php",
+						dataType: "JSON",
+						success: (response) => {
+							resolve(response);
+						},
+					});
+				});
+			}
+
+			function checkboxHandler(element, rowId) {
+				let isChecked = $(element).is(":checked");
+				let editableColumns = $("#table").getGridParam("editableColumns");
+				let selectedRowIds = $("#table").getGridParam("selectedRowIds");
+				selectedRowIds.push(rowId);
+
+				$("#table").jqGrid("setGridParam", {
+					selectedRowIds: selectedRowIds,
+				});
+
+				let originalGridData = $("#table")
+					.jqGrid("getGridParam", "originalData")
+					.find((row) => row.id === rowId);
+
+				let localRow = $("#table").jqGrid("getLocalRow", rowId);
+
+				localRow.payment_amount = originalGridData.debt_amount;
+
+				$("#table").jqGrid(
+					"setCell",
+					rowId,
+					"debt_amount",
+					originalGridData.debt_amount - localRow.payment_amount
+				);
+
+				$("#table").jqGrid(
+					"setCell",
+					rowId,
+					"payment_amount",
+					localRow.payment_amount
+				);
+
+				editableColumns.forEach((editableColumn) => {
+					if (!isChecked) {
+						$("#table").jqGrid(
+							"setCell",
+							rowId,
+							"debt_amount",
+							originalGridData.debt_amount
+						);
+
+						$("#table").jqGrid(
+							"setCell",
+							rowId,
+							"payment_amount",
+							originalGridData.payment_amount
+						);
+					}
+				});
+			}
+		</script>
+	</body>
+</html>
