@@ -58,6 +58,7 @@
 								index: "check",
 								name: "check",
 								formatter: "checkbox",
+								editable: false,
 								formatter: function (value, rowOptions, rowData) {
 									return `<input type="checkbox" value="${rowData.id}" onChange="checkboxHandler(this, ${rowData.id})">`;
 								},
@@ -144,6 +145,12 @@
 								.find(`tr input[value=${rowData.id}]`)
 								.is(":checked");
 						},
+						validationCell: function(cellobject, errormsg, iRow, iCol) {
+							console.log(cellobject);
+							console.log(errormsg);
+							console.log(iRow);
+							console.log(iCol);
+						},
 						loadComplete: function () {
 							setTimeout(() => {
 								$(this)
@@ -163,19 +170,32 @@
 						refresh: false,
 						search: false,
 					})
-					.jqGrid("navButtonAdd", '#tablePager', {
+					.jqGrid("navButtonAdd", "#tablePager", {
 						caption: "getGridData",
 						title: "getGridData",
 						id: "getGridData",
 						buttonicon: "ui-icon-disk",
 						onClickButton: function () {
-							console.log($(this).getGridParam('data'));
+							console.log($(this).getGridParam("data"));
 						},
 					})
 					.jqGrid("filterToolbar", {
-						searchOnEnter: false
+						searchOnEnter: false,
 					})
-					.jqGrid("excelLikeGrid");
+					.jqGrid("excelLikeGrid", {
+						beforeDeleteCell: function (rowId, iRow, iCol, event) {
+							let localRow = $("#table").jqGrid("getLocalRow", rowId);
+
+							$("#table").jqGrid(
+								"setCell",
+								rowId,
+								"debt_amount",
+								parseInt(localRow.debt_amount) + parseInt(localRow.payment_amount)
+							);
+
+							return true;
+						},
+					});
 			}
 
 			function getData() {

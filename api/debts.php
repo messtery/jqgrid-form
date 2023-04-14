@@ -16,6 +16,6 @@ echo json_encode([
         'id' => 4, 'name' => "test 4", 'debt_amount' => 40_000
     ],
     [
-        'id' => 6, 'name' => "test 5", 'debt_amount' => 50_000
+        'id' => 5, 'name' => "test 5", 'debt_amount' => 50_000
     ],
 ]);
